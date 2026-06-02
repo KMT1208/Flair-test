@@ -1,0 +1,11 @@
+# Configuration Netlify
+# Le dossier publié (où se trouve index.html)
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Joli chemin d'accès : /api/analyse  ->  la fonction analyse.js
+[[redirects]]
+  from = "/api/analyse"
+  to = "/.netlify/functions/analyse"
+  status = 200
