@@ -1,34 +1,31 @@
 netlify/functions/analyse.js
 // =============================================================
-//  FONCTION NETLIFY — Analyse IA sécurisée
-//  Le site appelle cette fonction, qui détient la clé API secrète.
-//  La clé n'est JAMAIS exposée côté navigateur.
+//  FONCTION NETLIFY — Analyse IA securisee
+//  Le site appelle cette fonction, qui detient la cle API secrete.
+//  La cle n'est JAMAIS exposee cote navigateur.
 // =============================================================
 
 export default async (request) => {
-  // CORS : autorise ton site à appeler la fonction
   const cors = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  // Pré-vol CORS
   if (request.method === "OPTIONS") {
     return new Response("", { status: 204, headers: cors });
   }
   if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Méthode non autorisée" }), {
+    return new Response(JSON.stringify({ error: "Methode non autorisee" }), {
       status: 405,
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
-  // La clé est lue depuis les variables d'environnement Netlify (jamais en dur)
   const API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!API_KEY) {
     return new Response(
-      JSON.stringify({ error: "Clé API manquante côté serveur (ANTHROPIC_API_KEY)" }),
+      JSON.stringify({ error: "Cle API manquante cote serveur (ANTHROPIC_API_KEY)" }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
@@ -38,35 +35,34 @@ export default async (request) => {
     const body = await request.json();
     detail = (body && body.detail) ? String(body.detail) : "";
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Corps de requête invalide" }), {
+    return new Response(JSON.stringify({ error: "Corps de requete invalide" }), {
       status: 400,
       headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 
-  // ---- Le prompt d'analyse ----
   const PROMPT_ANALYSE =
 `Tu es un expert en recrutement pour un poste d'animateur de lives TikTok (jeune public).
-Tu évalues la "jugeote" d'un candidat : débrouillardise, bon sens, autonomie, initiative et fiabilité dans la vie de tous les jours (pas seulement au travail).
+Tu evalues la "jugeote" d'un candidat : debrouillardise, bon sens, autonomie, initiative et fiabilite dans la vie de tous les jours (pas seulement au travail).
 
-Le candidat a aussi indiqué s'il dispose des PRÉREQUIS suivants : un compte TikTok, un PC/ordinateur portable, une connexion internet stable, un endroit calme pour live, et 1 à 2h par jour de disponibilité. Tiens-en compte dans le score : un candidat à qui il manque des prérequis essentiels (PC, connexion, disponibilité) doit voir son score et sa recommandation revus à la baisse.
+Le candidat a aussi indique s'il dispose des PREREQUIS suivants : un compte TikTok, un PC/ordinateur portable, une connexion internet stable, un endroit calme pour live, et 1 a 2h par jour de disponibilite. Tiens-en compte dans le score : un candidat a qui il manque des prerequis essentiels (PC, connexion, disponibilite) doit voir son score et sa recommandation revus a la baisse.
 
-Évalue la QUALITÉ DU RAISONNEMENT, pas une grille rigide. Les questions n'ont pas de bonne réponse unique.
+Evalue la QUALITE DU RAISONNEMENT, pas une grille rigide. Les questions n'ont pas de bonne reponse unique.
 
-Voici les réponses du candidat :
----
+Voici les reponses du candidat :
+===DEBUT===
 ${detail}
----
+===FIN===
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, sans backticks markdown, exactement dans ce format :
+Reponds UNIQUEMENT avec un objet JSON valide, sans texte autour, sans backticks markdown, exactement dans ce format :
 {
-  "score": <entier de 0 à 10>,
-  "synthese": "<résumé du profil en 2-3 phrases>",
-  "points_forts": ["<point 1>", "<point 2>", "<point 3>"],
-  "points_faibles": ["<point 1>", "<point 2>"],
-  "prerequis": "<résumé en 1 phrase de ce que le candidat possède ou pas>",
-  "recommandation": "<RECRUTER | À APPROFONDIR | NE PAS RECRUTER>",
-  "justification": "<pourquoi cette recommandation, 1-2 phrases>"
+  "score": 7,
+  "synthese": "resume du profil en 2-3 phrases",
+  "points_forts": ["point 1", "point 2", "point 3"],
+  "points_faibles": ["point 1", "point 2"],
+  "prerequis": "resume en 1 phrase de ce que le candidat possede ou pas",
+  "recommandation": "RECRUTER ou A APPROFONDIR ou NE PAS RECRUTER",
+  "justification": "pourquoi cette recommandation, 1-2 phrases"
 }`;
 
   try {
@@ -97,7 +93,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, sans backticks
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("");
-    text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+    text = text.split("```json").join("").split("```").join("").trim();
 
     const analysis = JSON.parse(text);
 
@@ -106,7 +102,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, sans backticks
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Échec de l'analyse", message: String(e) }), {
+    return new Response(JSON.stringify({ error: "Echec de l'analyse", message: String(e) }), {
       status: 500,
       headers: { ...cors, "Content-Type": "application/json" },
     });
